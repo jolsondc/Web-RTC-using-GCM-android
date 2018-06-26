@@ -1,6 +1,6 @@
 WebRTCusingGCM
 
-*Signalling donw with GCM/FCM .since it is API call .will be slow in signalling. but accurate enough to deliver signal(gcm notification) to the peer device.*
+*Signalling done with GCM/FCM .since it is API call .will be slow in signalling. but accurate enough to deliver signal(gcm notification) to the peer device.*
 
 
 ```java
@@ -8,6 +8,7 @@ public class MyApplication extends Application {
     private String buddy="GCM token of other phone";
     private String FIREBASE_KEY="key=Legacy server key (You should find this in Firebase project setting)";
     private String ICE_SERVER_HEADER="Basic aksdjkabdkasndklamsdlamsldnlakndansldnklasndklandlanasd";
+    }
 ```
 
 - buddy - will be GCM token of second peer always
