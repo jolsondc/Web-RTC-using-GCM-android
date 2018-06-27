@@ -1,5 +1,9 @@
 WebRTCusingGCM
 
+###Video/Audio Calling using WebRtc library. 
+Implementation of Webrtc without having 3rd party dependency of socket io server and all, instead implementing using GCM which does pretty much same work of delivering signalling data before starting video calling.
+
+
 *Signalling done with GCM/FCM .since it is API call .will be slow in signalling. but accurate enough to deliver signal(gcm notification) to the peer device.*
 
 
