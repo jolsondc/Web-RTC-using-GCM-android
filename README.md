@@ -17,3 +17,7 @@ public class MyApplication extends Application {
 
 
 > NOTE: Register your project in firebase to create google-services.json file. after addding in your project. compile. and enjoy!!!
+
+
+### Contributing to WebRtcUsingGCM
+Just make pull request. You are in!
