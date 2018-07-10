@@ -1,11 +1,16 @@
 package com.jolson.webrtcusinggcm;
 
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
@@ -71,9 +76,54 @@ public class InternetCall extends AppCompatActivity implements View.OnClickListe
     PeerConnection localPeer;
     List<IceServer> iceServers;
     EglBase rootEglBase;
+    Intent serviceIntent;//= new Intent(this, SignallingClient.class);
 
     boolean gotUserMedia,isCAlled=false,isInitiated=false;
     List<PeerConnection.IceServer> peerIceServers = new ArrayList<>();
+
+    private boolean mBound = false;
+    private SignallingClient mService;
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            SignallingClient.LocalBinder binder = (SignallingClient.LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+            Log.i("TAG","onServiceConnected");
+                mService.init(InternetCall.this, Utils.getInstance().getRetrofitInstance());
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mBound = false;
+            Log.i("TAG","onServiceDisconnected");
+        }
+    };
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Bind to LocalService
+        serviceIntent = new Intent(this, SignallingClient.class);
+        bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE);
+
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        hangup();
+        unbindService(mConnection);
+        mBound = false;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        startService(serviceIntent);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,12 +147,14 @@ public class InternetCall extends AppCompatActivity implements View.OnClickListe
 
         });
 
+        getIceServers(getIntent());
 
 
 
-        SignallingClient.getInstance().init(InternetCall.this,Utils.getInstance().getRetrofitInstance());
-        getIceServers();
+
+
     }
+
 
     private void startCall() {
             localVideoView.setVisibility(View.VISIBLE);
@@ -130,7 +182,7 @@ public class InternetCall extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    private void getIceServers() {
+    private void getIceServers(Intent intent) {
         //get Ice servers using xirsys
         Utils.getInstance().getRetrofitInstance().getIceCandidates(MyApplication.getInstance().getICE_SERVER_HEADER()).enqueue(new Callback<TurnServerPojo>() {
             @Override
@@ -149,6 +201,14 @@ public class InternetCall extends AppCompatActivity implements View.OnClickListe
                                 .setPassword(iceServer.credential)
                                 .createIceServer();
                         peerIceServers.add(peerIceServer);
+                    }
+                }
+
+                if(intent.hasExtra("offer")&& !TextUtils.isEmpty(intent.getStringExtra("offer"))){
+                    try {
+                        onOfferReceived(new JSONObject(intent.getStringExtra("offer")));
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
                 }
                 Log.d("onApiResponse", "IceServers" + iceServers.toString());
@@ -211,7 +271,7 @@ public class InternetCall extends AppCompatActivity implements View.OnClickListe
 
         gotUserMedia = true;
 
-        if (SignallingClient.getInstance().isInitiator) {
+        if (mService.isInitiator) {
             onTryToStart();
         }
 
@@ -226,9 +286,9 @@ public class InternetCall extends AppCompatActivity implements View.OnClickListe
         Log.i("METHODS","onTryToStart");
 
         runOnUiThread(() -> {
-            if (!SignallingClient.getInstance().isStarted && localVideoTrack != null && SignallingClient.getInstance().isChannelReady) {
+            if (!mService.isStarted && localVideoTrack != null && mService.isChannelReady) {
                 createPeerConnection();
-                SignallingClient.getInstance().isStarted = true;
+                mService.isStarted = true;
 
             }
         });
@@ -297,7 +357,7 @@ public class InternetCall extends AppCompatActivity implements View.OnClickListe
                 localPeer.setLocalDescription(new CustomSdpObserver("localSetLocalDesc"), sessionDescription);
                 Log.d("onCreateSuccess", "SignallingClient emit ");
                 if(!iceCandidateSent) {
-                    SignallingClient.getInstance().emitMessage(sessionDescription);
+                    mService.emitMessage(sessionDescription);
                 }
             }
 
@@ -397,7 +457,7 @@ ArrayList<IceCandidate> iceCandidates = new ArrayList<>();
     public void sendAllCandidates(){
             Log.i("METHODS","sendAllCandidates :"+iceCandidates.size());
             if(!iceCandidateSent) {
-                SignallingClient.getInstance().emitIceCandidate(iceCandidates);
+                mService.emitIceCandidate(iceCandidates);
                 iceCandidateSent=true;
             }
 
@@ -450,7 +510,7 @@ ArrayList<IceCandidate> iceCandidates = new ArrayList<>();
                 Log.d(TAG, "onCreateSuccess() called with: sessionDescription = [" + sessionDescription + "]");
 
                 localPeer.setLocalDescription(new CustomSdpObserver("localSetLocal"), sessionDescription);
-                SignallingClient.getInstance().emitMessage(sessionDescription);
+                mService.emitMessage(sessionDescription);
             }
 
             @Override
@@ -520,33 +580,21 @@ ArrayList<IceCandidate> iceCandidates = new ArrayList<>();
             if(localPeer!=null) {
                 localPeer.close();
             }
+            if(rootEglBase!=null) {
+                rootEglBase.release();
+            }
             localPeer = null;
-
-            rootEglBase.release();
-
-            SignallingClient.getInstance().close();
+            rootEglBase=null;
+            mService.isInitiator=false;
+            mService.isStarted=false;
         } catch (Exception e) {
             e.printStackTrace();
-        }finally {
-
         }
 
     }
 
-    @Override
-    protected void onDestroy() {
-        SignallingClient.getInstance().close();
-        hangup();
-        super.onDestroy();
-    }
 
-    /**
-     * Util Methods
-     */
-    public int dpToPx(int dp) {
-        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        return Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
-    }
+
 
     public void showToast(final String msg) {
         runOnUiThread(() -> Toast.makeText(InternetCall.this, msg, Toast.LENGTH_SHORT).show());

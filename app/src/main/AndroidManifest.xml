@@ -17,6 +17,7 @@
         <activity
             android:name=".InternetCall"
             android:label="@string/app_name"
+            android:launchMode="singleInstance"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -36,6 +37,9 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
         </service>
+
+        <service android:name="SignallingClient"
+            android:exported="false"/>
     </application>
 
 </manifest>
