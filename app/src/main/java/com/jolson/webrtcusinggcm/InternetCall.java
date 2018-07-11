@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
@@ -14,6 +15,8 @@ import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.jolson.webrtcusinggcm.Pojo.IceServer;
@@ -55,34 +58,36 @@ import retrofit2.Response;
 
 public class InternetCall extends AppCompatActivity implements View.OnClickListener, SignallingClient.SignalingInterface  {
 
-   SurfaceViewRenderer localVideoView;
-    SurfaceViewRenderer remoteVideoView;
+  private SurfaceViewRenderer localVideoView;
+  private  SurfaceViewRenderer remoteVideoView;
 
 
 
     private static final String TAG = "InternetCall";
 
-    PeerConnectionFactory peerConnectionFactory;
-    MediaConstraints audioConstraints;
-    MediaConstraints videoConstraints;
-    MediaConstraints sdpConstraints;
-    VideoSource videoSource;
-    VideoTrack localVideoTrack;
-    AudioSource audioSource;
-    AudioTrack localAudioTrack;
-    VideoRenderer localRenderer;
-    VideoRenderer remoteRenderer;
-
-    PeerConnection localPeer;
-    List<IceServer> iceServers;
-    EglBase rootEglBase;
-    Intent serviceIntent;//= new Intent(this, SignallingClient.class);
+  private   PeerConnectionFactory peerConnectionFactory;
+  private   MediaConstraints audioConstraints;
+  private   MediaConstraints videoConstraints;
+  private   MediaConstraints sdpConstraints;
+  private   VideoSource videoSource;
+  private   VideoTrack localVideoTrack;
+  private   AudioSource audioSource;
+  private   AudioTrack localAudioTrack;
+  private   VideoRenderer localRenderer;
+  private   VideoRenderer remoteRenderer;
+  private   PeerConnection localPeer;
+  private   List<IceServer> iceServers;
+  private   EglBase rootEglBase;
+  private   Intent serviceIntent;//= new Intent(this, SignallingClient.class);
 
     boolean gotUserMedia,isCAlled=false,isInitiated=false;
     List<PeerConnection.IceServer> peerIceServers = new ArrayList<>();
 
     private boolean mBound = false;
     private SignallingClient mService;
+
+    private FrameLayout frm_overlay;
+    private TextView txt_connecting;
 
     private ServiceConnection mConnection = new ServiceConnection() {
         @Override
@@ -122,7 +127,9 @@ public class InternetCall extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        startService(serviceIntent);
+        if (Build.VERSION.SDK_INT >= 26) {
+            startService(serviceIntent);
+        }
     }
 
     @Override
@@ -133,7 +140,8 @@ public class InternetCall extends AppCompatActivity implements View.OnClickListe
 
         localVideoView =(SurfaceViewRenderer) findViewById(R.id.local_gl_surface_view);
         remoteVideoView =(SurfaceViewRenderer) findViewById(R.id.remote_gl_surface_view);
-
+        frm_overlay = (FrameLayout)findViewById(R.id.frm_overlay);
+        txt_connecting = (TextView) findViewById(R.id.txt_connecting);
 
         findViewById(R.id.fab_video).setOnClickListener(v -> {
             if(isCAlled){
@@ -159,6 +167,7 @@ public class InternetCall extends AppCompatActivity implements View.OnClickListe
     private void startCall() {
             localVideoView.setVisibility(View.VISIBLE);
             ((FloatingActionButton) findViewById(R.id.fab_video)).setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+             txt_connecting.setText("Connecting..");
             isCAlled=true;
             initVideos();
 
@@ -422,6 +431,8 @@ public class InternetCall extends AppCompatActivity implements View.OnClickListe
     private void gotRemoteStream(MediaStream stream) {
         Log.i("METHODS","gotRemoteStream");
 
+        runOnUiThread(()->setUIforCall(true));
+
         //we have remote video stream. add to the renderer.
 
             final VideoTrack videoTrack = stream.videoTracks.get(0);
@@ -441,7 +452,17 @@ public class InternetCall extends AppCompatActivity implements View.OnClickListe
 
     }
 
-ArrayList<IceCandidate> iceCandidates = new ArrayList<>();
+    private void setUIforCall(boolean b) {
+        if(b){
+            frm_overlay.setBackgroundColor(getResources().getColor(android.R.color.transparent));
+            txt_connecting.setTextColor(getResources().getColor(android.R.color.transparent));
+        }else{
+            frm_overlay.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+            txt_connecting.setTextColor(getResources().getColor(android.R.color.white));
+        }
+    }
+
+    ArrayList<IceCandidate> iceCandidates = new ArrayList<>();
     /**
      * Received local ice candidate. Send it to remote peer through signalling for negotiation
      */
@@ -479,7 +500,7 @@ ArrayList<IceCandidate> iceCandidates = new ArrayList<>();
     public void onOfferReceived(final JSONObject data) {
         Log.i("METHODS","onOfferReceived");
         showToast("Received Offer");
-
+        txt_connecting.setText("Connecting..");
         if(!isInitiated){
             startCall();
         }
@@ -587,6 +608,7 @@ ArrayList<IceCandidate> iceCandidates = new ArrayList<>();
             rootEglBase=null;
             mService.isInitiator=false;
             mService.isStarted=false;
+            mService.close();
         } catch (Exception e) {
             e.printStackTrace();
         }

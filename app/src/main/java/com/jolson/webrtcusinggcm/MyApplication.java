@@ -9,9 +9,9 @@ import com.facebook.stetho.Stetho;
 public class MyApplication extends Application {
     static  MyApplication myApplication;
     private PreferenceHelper preferenceHelper;
-    private String buddy="GCM token of other phone";
-    private String FIREBASE_KEY="key=Legacy server key (You should find this in Firebase project setting)";
-    private String ICE_SERVER_HEADER="Basic aksdjkabdkasndklamsdlamsldnlakndansldnklasndklandlanasd";
+    private String buddy="fDUv3jFfl_0:APA91bGQLMhO9A4yQWiGfEtvNA3xON__W3wZZZ6cRIJvAq2yPO0d5SUxThzz6fOqdG2-D-y9pmdZDY-Jt9ozU4yWxTqk7kVj6AnuMEQPc8BfPaDN8CJd5qwmFlzNFqCmqlrjTCDtUj81ZC9ehsg3jkuHAwYnfRfN-Q";
+    private String FIREBASE_KEY="key=AIzaSyAn_jJCYDAyF4Zrj3gTYIE-7ro8cqCCAMc";
+    private String ICE_SERVER_HEADER="Basic Sm9sc29uZGM6ZDdkOGZkNWMtNzU0Zi0xMWU4LWJjNjktNGNhOTVkMGY5N2Q1";
 
 
 

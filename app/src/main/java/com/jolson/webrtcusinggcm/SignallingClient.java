@@ -168,8 +168,8 @@ public class SignallingClient extends Service{
 
     }
     
-    private void close() {
-        LocalBroadcastManager.getInstance(SignallingClient.this).unregisterReceiver(localReciver);
+    public void close() {
+        callback=null;
     }
 
     public class LocalBinder extends Binder {
@@ -182,7 +182,7 @@ public class SignallingClient extends Service{
     @Override
     public void onDestroy() {
         super.onDestroy();
-        close();
+        LocalBroadcastManager.getInstance(SignallingClient.this).unregisterReceiver(localReciver);
         Log.i("TAG","onDestroy Signallingclient service");
     }
 

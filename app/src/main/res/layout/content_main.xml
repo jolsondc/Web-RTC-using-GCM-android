@@ -39,9 +39,19 @@
 
     </FrameLayout>
     <FrameLayout
+        android:id="@+id/frm_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="@color/colorPrimary"
         android:fitsSystemWindows="true">
+        <TextView
+            android:id="@+id/txt_connecting"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:layout_gravity="center"
+            android:textColor="@android:color/white"
+            android:text="..."/>
 
         <LinearLayout
             android:id="@+id/fullscreen_content_controls"
